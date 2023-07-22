@@ -80,7 +80,7 @@ def get_video_comments(video_id):
             print(f"Comentario original: {comment}")
             print(f"Comentario filtrado: {comment_filtrado}")
             print(f"Sentimiento: {sentiment}\n")
-            comments_with_sentiment.append((comment, comment_filtrado, sentiment))
+            comments_with_sentiment.append((comment_filtrado, sentiment))
 
         next_page_token = response.get('nextPageToken')
         if not next_page_token:
@@ -91,9 +91,8 @@ def get_video_comments(video_id):
 video_id = 'VoMyUgI-5NI'
 comments_with_sentiment = get_video_comments(video_id)
 
-# Guardar los comentarios y los sentimientos en un archivo de texto
-with open('comentarios_con_sentimiento.txt', 'w', encoding='utf-8') as file:
-    for comment, comment_filtrado, sentiment in comments_with_sentiment:
-        file.write(f"Comentario original: {comment}\n")
-        file.write(f"Comentario filtrado: {comment_filtrado}\n")
-        file.write(f"Sentimiento: {sentiment}\n\n")
+# Crear un DataFrame con los comentarios filtrados y las etiquetas
+df = pd.DataFrame(comments_with_sentiment, columns=['Comentario Filtrado', 'Etiqueta'])
+
+# Guardar los comentarios y las etiquetas en un archivo CSV
+df.to_csv('comentarios_con_etiquetas.csv', index=False, encoding='utf-8')
