@@ -1,0 +1,123 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Clasificación de Sentimientos</title>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/bootstrap/5.3.0/css/bootstrap.min.css">
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/bootstrap/5.3.0/js/bootstrap.min.js"></script>
+    <!-- Agrega la referencia a la librería Chart.js -->
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+</head>
+<body>
+    <div class="container mt-4">
+        <h1 class="mb-4">Clasificación de Sentimientos</h1>
+        <div class="row">
+            <div class="col-md-6">
+                <form id="formulario">
+                    <div class="mb-3">
+                        <label for="textos" class="form-label">Textos (separados por coma):</label>
+                        <textarea class="form-control" name="textos" id="textos" cols="40" rows="5"></textarea>
+                    </div>
+                    <div class="mb-3">
+                        <label for="etiquetas" class="form-label">Etiquetas de sentimiento (separadas por coma):</label>
+                        <input type="text" class="form-control" name="etiquetas" id="etiquetas">
+                    </div>
+                    <button type="submit" class="btn btn-primary">Clasificar</button>
+                </form>
+            </div>
+            <div class="col-md-6">
+                <h2 class="mb-3">Resultados:</h2>
+                <div>
+                    <h3 class="mb-3">Lista de Textos con Etiquetas:</h3>
+                    <ul class="list-group" id="lista-textos"></ul>
+                </div>
+                <div>
+                    <h3 class="mb-3">Gráfico de Pastel</h3>
+                    <canvas id="grafico-pastel" width="400" height="200"></canvas>
+                </div>
+                <div>
+                    <h3 class="mb-3">Gráfico de Barras</h3>
+                    <canvas id="grafico-barras" width="400" height="200"></canvas>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        document.getElementById('formulario').addEventListener('submit', function(event) {
+            event.preventDefault();
+
+            const formData = new FormData(event.target);
+
+            fetch('/procesar', {
+                method: 'POST',
+                body: formData
+            })
+            .then(response => response.json())
+            .then(data => {
+                // Mostrar lista de textos con etiquetas
+                const listaTextosElement = document.getElementById('lista-textos');
+                listaTextosElement.innerHTML = '';
+                data.lista_textos.forEach(item => {
+                    const listItem = document.createElement('li');
+                    listItem.textContent = `${item.texto} - Etiqueta: ${item.etiqueta}`;
+                    listaTextosElement.appendChild(listItem);
+                });
+
+                // Mostrar gráfico de pastel
+                const graficoPastelElement = document.getElementById('grafico-pastel');
+                new Chart(graficoPastelElement, {
+                    type: 'pie',
+                    data: {
+                        labels: ['Positivo', 'Negativo'],
+                        datasets: [{
+                            data: [data.positivo, data.negativo],
+                            backgroundColor: ['green', 'red'],
+                        }]
+                    },
+                    options: {
+                        responsive: true,
+                        maintainAspectRatio: false,
+                        title: {
+                            display: true,
+                            text: 'Resultados de Sentimiento'
+                        }
+                    }
+                });
+
+                // Mostrar gráfico de barras
+                const graficoBarrasElement = document.getElementById('grafico-barras');
+                const palabrasLabels = Object.keys(data.palabras_contadas);
+                const palabrasValores = Object.values(data.palabras_contadas);
+                new Chart(graficoBarrasElement, {
+                    type: 'bar',
+                    data: {
+                        labels: palabrasLabels,
+                        datasets: [{
+                            data: palabrasValores,
+                            backgroundColor: 'blue',
+                        }]
+                    },
+                    options: {
+                        responsive: true,
+                        maintainAspectRatio: false,
+                        title: {
+                            display: true,
+                            text: 'Palabras Contadas'
+                        },
+                        scales: {
+                            yAxes: [{
+                                ticks: {
+                                    beginAtZero: true
+                                }
+                            }]
+                        }
+                    }
+                });
+            })
+            .catch(error => {
+                console.error('Error:', error);
+            });
+        });
+    </script>
+</body>
+</html>
