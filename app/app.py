@@ -33,8 +33,8 @@ def procesar():
     resultado_json = {
         'positivo': int(sentimiento_counts.get('bueno', 0)),
         'negativo': int(sentimiento_counts.get('malo', 0)),
-        'palabras_contadas': counter_to_dict(palabras_counter.most_common(5)),
-        'lista_textos': lista_textos_etiquetas
+        'palabras_contadas': counter_to_dict(palabras_counter.most_common(5))
+        #'lista_textos': lista_textos_etiquetas
     }
 
     # Convertir el JSON a formato de cadena y devolverlo como respuesta
