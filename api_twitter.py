@@ -10,16 +10,22 @@ access_token = '707966186202517504-jG3ISML7Zzex3LbcIo4Dn2gBnWGIlPl'
 access_token_secret = 'xf1rXo4UaSO79xTd37EgtYVrjk5GCNeEl8YXIRuMYgGb8'
 
 # Autenticación con la API de Twitter
-auth = tweepy.OAuthHandler(consumer_key, consumer_secret)
+auth = tweepy.OAuth1UserHandler(consumer_key, consumer_secret, access_token_secret)
+
 auth.set_access_token(access_token, access_token_secret)
-api = tweepy.API(auth, wait_on_rate_limit=True)
+# Creación de interfaz
+api = tweepy.API(auth)
 
 # Palabras clave a buscar
 keywords = "Ecuador lasso OR elecciones OR seguridad OR correa"
 
+# Cantidad de tweets a obtener (max. 100)
+num_tweets = 10
+
+
 # Recopilación de tweets con las palabras clave
 tweets_data = []
-for tweet in tweepy.Cursor(api.search, q=keywords, lang='es', tweet_mode='extended').items(100):
+for tweet in tweepy.Cursor(api.search_tweets, q=keywords, lang='es').items(num_tweets):
     tweets_data.append({
         'Texto': tweet.full_text,
         'Fecha': tweet.created_at,
