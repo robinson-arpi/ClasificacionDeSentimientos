@@ -41,21 +41,16 @@ def filtrar_palabras(texto):
     texto_filtrado = ' '.join(palabras_filtradas)
     texto_filtrado = re.sub(r'[^\w\s]', ' ', texto_filtrado)
 
-    # Aplicar stemming (extracción de raíces) a las palabras filtradas
-    palabras_stemmed = [stemmer.stem(palabra) for palabra in word_tokenize(texto_filtrado, language='spanish')]
-
-    # Unir las palabras filtradas y stemmizadas en un solo texto
-    texto_filtrado = ' '.join(palabras_stemmed)
-
     return texto_filtrado
+
 
 def analizar_sentimiento(texto):
     blob = TextBlob(texto)
     polaridad = blob.sentiment.polarity
 
-    if polaridad >= 0.001:
+    if polaridad > 0:
         return "Positivo"
-    elif polaridad < -0.2:
+    elif polaridad < 0:
         return "Negativo"
     else:
         return "Neutro"
@@ -88,7 +83,7 @@ def get_video_comments(video_id):
 
     return comments_with_sentiment
 
-video_id = 'VoMyUgI-5NI'
+video_id = 'm1sHzEwjFYs'
 comments_with_sentiment = get_video_comments(video_id)
 
 # Crear un DataFrame con los comentarios filtrados y las etiquetas
