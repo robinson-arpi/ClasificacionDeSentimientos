@@ -49,11 +49,11 @@ def analizar_sentimiento(texto):
     polaridad = blob.sentiment.polarity
 
     if polaridad > 0:
-        return "Positivo"
+        return "1"
     elif polaridad < 0:
-        return "Negativo"
+        return "-1"
     else:
-        return "Neutro"
+        return "0"
 
 def get_video_comments(video_id):
     comments_with_sentiment = []
