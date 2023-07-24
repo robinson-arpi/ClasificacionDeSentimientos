@@ -10,16 +10,13 @@
 <body>
     <div class="container mt-4">
         <h1 class="mb-4">Clasificación de Sentimientos</h1>
+        <p>Este sitio web es capaz de realizar un análisis de sentimientos de un video/short de youtube. Para lo cual se tiene que ingresar la url y presionar en clasificar</p>
         <div class="row">
             <div class="col-md-6">
                 <form id="formulario">
                     <div class="mb-3">
-                        <label for="textos" class="form-label">Textos (separados por coma):</label>
-                        <textarea class="form-control" name="textos" id="textos" cols="40" rows="5"></textarea>
-                    </div>
-                    <div class="mb-3">
-                        <label for="etiquetas" class="form-label">Etiquetas de sentimiento (separadas por coma):</label>
-                        <input type="text" class="form-control" name="etiquetas" id="etiquetas">
+                        <label for="url" class="form-label">Ingrese la url del video:</label>
+                        <textarea class="form-control" name="url" id="url" cols="40" rows="1"></textarea>
                     </div>
                     <button type="submit" class="btn btn-primary">Clasificar</button>
                 </form>
@@ -27,18 +24,22 @@
             <div class="col-md-6">
                 <h2 class="mb-3">Resultados:</h2>
                 <div>
-                    <h3 class="mb-3">Lista de Textos con Etiquetas:</h3>
-                    <ul class="list-group" id="lista-textos"></ul>
-                </div>
-                <div>
                     <h3 class="mb-3">Gráfico de Pastel</h3>
-                    <canvas id="grafico-pastel" width="400" height="200"></canvas>
+                    <canvas id="grafico-pastel" max-width="400" max-height="200"></canvas>
                 </div>
-                <div>
-                    <h3 class="mb-3">Gráfico de Barras</h3>
-                    <canvas id="grafico-barras" width="400" height="200"></canvas>
-                </div>
+                
             </div>
+            <div class="row">
+                <div class="col-md-6">
+                    <h3 class="mb-3">Comentarios positivos:</h3>
+                    <ul class="list-group" id="lista-positivos"></ul>
+                </div>
+                <div class="col-md-6">
+                    <h3 class="mb-3">Comentarios Negativos:</h3>
+                    <ul class="list-group" id="lista-negativos"></ul>
+                </div>
+            </div>           
+
         </div>
     </div>
 
@@ -46,78 +47,102 @@
         document.getElementById('formulario').addEventListener('submit', function(event) {
             event.preventDefault();
 
-            const formData = new FormData(event.target);
+            const url = document.getElementById('url').value;
+            
+            if(url.trim().length !== 0){
+                
+                const id_video = getYoutubeId(url);
+                console.log("id video: ",id_video);
 
-            fetch('/procesar', {
-                method: 'POST',
-                body: formData
-            })
-            .then(response => response.json())
-            .then(data => {
-                // Mostrar lista de textos con etiquetas
-                const listaTextosElement = document.getElementById('lista-textos');
-                listaTextosElement.innerHTML = '';
-                data.lista_textos.forEach(item => {
-                    const listItem = document.createElement('li');
-                    listItem.textContent = `${item.texto} - Etiqueta: ${item.etiqueta}`;
-                    listaTextosElement.appendChild(listItem);
-                });
 
-                // Mostrar gráfico de pastel
-                const graficoPastelElement = document.getElementById('grafico-pastel');
-                new Chart(graficoPastelElement, {
-                    type: 'pie',
-                    data: {
-                        labels: ['Positivo', 'Negativo'],
-                        datasets: [{
-                            data: [data.positivo, data.negativo],
-                            backgroundColor: ['green', 'red'],
-                        }]
-                    },
-                    options: {
-                        responsive: true,
-                        maintainAspectRatio: false,
-                        title: {
-                            display: true,
-                            text: 'Resultados de Sentimiento'
-                        }
-                    }
-                });
+                if(!id_video){
+                    alert("Video no encontrado")
+                    return;
+                }
 
-                // Mostrar gráfico de barras
-                const graficoBarrasElement = document.getElementById('grafico-barras');
-                const palabrasLabels = Object.keys(data.palabras_contadas);
-                const palabrasValores = Object.values(data.palabras_contadas);
-                new Chart(graficoBarrasElement, {
-                    type: 'bar',
-                    data: {
-                        labels: palabrasLabels,
-                        datasets: [{
-                            data: palabrasValores,
-                            backgroundColor: 'blue',
-                        }]
-                    },
-                    options: {
-                        responsive: true,
-                        maintainAspectRatio: false,
-                        title: {
-                            display: true,
-                            text: 'Palabras Contadas'
-                        },
-                        scales: {
-                            yAxes: [{
-                                ticks: {
-                                    beginAtZero: true
-                                }
+                const formData = new FormData();
+                formData.append('videoId', id_video);
+
+                fetch('/procesar', {
+                    method: 'POST',
+                    body: formData
+                })
+                .then(response => response.json())
+                .then(data => {
+
+                    // Mostrar gráfico de pastel
+                    const graficoPastelElement = document.getElementById('grafico-pastel');
+                    new Chart(graficoPastelElement, {
+                        type: 'pie',
+                        data: {
+                            labels: ['Positivo', 'Negativo', 'Neutro'],
+                            datasets: [{
+                                data: [data.positivo, data.negativo, data.neutro],
+                                backgroundColor: ['green', 'red', 'blue'],
                             }]
+                        },
+                        options: {
+                            responsive: false,
+                            maintainAspectRatio: false,
+                            title: {
+                                display: true,
+                                text: 'Resultados de Sentimiento'
+                            }
                         }
-                    }
+                    });
+                    
+                    // Obtener referencias a las listas en el HTML
+                    const listaPositivosElement = document.getElementById('lista-positivos');
+                    const listaNegativosElement = document.getElementById('lista-negativos');
+
+                    // Limpiar las listas antes de agregar nuevos elementos
+                    listaPositivosElement.innerHTML = '';
+                    listaNegativosElement.innerHTML = '';
+
+                    // Recorrer la lista de comentarios positivos y agregar elementos a la lista
+                    data.lista_positivos.forEach(comentario => {
+                        const liElement = document.createElement('li');
+                        liElement.textContent = comentario;
+                        listaPositivosElement.appendChild(liElement);
+                    });
+
+                    // Recorrer la lista de comentarios negativos y agregar elementos a la lista
+                    data.lista_negativos.forEach(comentario => {
+                        const liElement = document.createElement('li');
+                        liElement.textContent = comentario;
+                        listaNegativosElement.appendChild(liElement);
+                    });
+                })
+                .catch(error => {
+                    console.error('Error:', error);
                 });
-            })
-            .catch(error => {
-                console.error('Error:', error);
-            });
+            }else{
+                alert("Ingrese una url")
+            }
+
+            
         });
+
+        // saca el id de un video de Youtube
+        function getYoutubeId(url) {
+            var video_id;
+            if (url.includes('youtube.com/shorts/')) {
+                var pieces = url.split('youtube.com/shorts/');
+                video_id = pieces[1];
+            } else {
+                url = url.split('v=')[1];
+                if (url !== undefined) {
+                    var ampersandPosition = url.indexOf('&');
+                    if (ampersandPosition != -1) {
+                        video_id = url.substring(0, ampersandPosition);
+                    } else {
+                        video_id = url;
+                    }
+                }
+            }
+            return video_id;
+        }
+
     </script>
 </body>
 </html>

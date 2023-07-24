@@ -1,7 +1,22 @@
 from flask import Flask, render_template, request, jsonify
 import pandas as pd
-from textblob import TextBlob
-from collections import Counter
+from RNN.filtrado_texto import get_video_comments
+from keras.models import load_model
+import numpy as np
+from keras.preprocessing.text import Tokenizer
+from keras.preprocessing.sequence import pad_sequences
+
+# Carga del modelo entrenado
+loaded_model = load_model('ClasificacionDeSentimientos/app/RNN/modelo.h5')
+
+file_path = 'ClasificacionDeSentimientos/app/RNN/Comentarios1.csv'
+df = pd.read_csv(file_path)
+opinions = df['comentario'].values
+num_words = 10000
+tokenizer = Tokenizer(num_words=num_words, oov_token='<OOV>')
+tokenizer.fit_on_texts(opinions)
+sequences = tokenizer.texts_to_sequences(opinions)
+max_sequence_length = max(len(seq) for seq in sequences)
 
 app = Flask(__name__)
 
@@ -18,23 +33,51 @@ def index():
 @app.route('/procesar', methods=['POST'])
 def procesar():
     # Obtener los datos del formulario en el HTML
-    textos = request.form.get('textos')
-    etiquetas = request.form.get('etiquetas').split(',')
+    id_video = request.form.get('videoId')
 
-    # Crear un DataFrame con los datos ingresados
-    data = {'Texto': textos.split(','), 'Sentimiento': etiquetas}
-    df = pd.DataFrame(data)
+    # obtiene los comentarios del video
+    comentarios_video = get_video_comments(id_video)
 
-    # Realizar el análisis de sentimientos y contar las palabras
-    sentimiento_counts = df['Sentimiento'].value_counts()
-    palabras_counter = Counter(" ".join(df['Texto']).split())
+    total = len(comentarios_video)
+
+    #Listas
+    l_positivos = []
+    l_negativos = []
+    l_neutros = []
+
+
+    # Uso del modelo para predicciones
+    for x in comentarios_video:
+        sequence = tokenizer.texts_to_sequences([x[1]])
+        sequence = pad_sequences(sequence, maxlen=max_sequence_length)
+        prediction = loaded_model.predict(sequence)
+        class_pred = np.argmax(prediction)
+        label_mapping_inverse = {2: 1, 1: 0, 0: -1}
+        class_pred = label_mapping_inverse[class_pred]
+
+        print(x[0], class_pred)
+
+        if class_pred == 1:
+            l_positivos.append(x[0])
+        elif class_pred == 0:
+            l_neutros.append(x[0])
+        else:
+            l_negativos.append(x[0])
+
+    t_pos = len(l_positivos)
+    t_neg = len(l_negativos)
+    t_neu = len(l_neutros)
+
+    if t_pos > 10: l_positivos[:10]
+    if t_neg > 10: l_negativos[:10]
 
     # Convertir los datos numéricos a enteros para que puedan ser serializados a JSON
     resultado_json = {
-        'positivo': int(sentimiento_counts.get('bueno', 0)),
-        'negativo': int(sentimiento_counts.get('malo', 0)),
-        'palabras_contadas': counter_to_dict(palabras_counter.most_common(5))
-        #'lista_textos': lista_textos_etiquetas
+        'positivo': t_pos,
+        'negativo': t_neg,
+        'neutro': t_neu,
+        'lista_positivos': l_positivos,
+        'lista_negativos': l_negativos
     }
 
     # Convertir el JSON a formato de cadena y devolverlo como respuesta
